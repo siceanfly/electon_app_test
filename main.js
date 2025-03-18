@@ -2,13 +2,6 @@ const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const electronDebug = require('electron-debug') // 引入调试工具
 
-// 配置 electron-debug（可选参数）
-electronDebug = electronDebug({
-  showDevTools: true,      // 自动为所有窗口打开 DevTools
-  devToolsMode: 'undocked',// 'right'|'bottom'|'undocked'|'detach'
-  isEnabled: true          // 是否启用调试功能
-})
-
 let mainWindow;
 let settingsWindow;
 
@@ -17,12 +10,13 @@ app.whenReady().then(() => {
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true
         }
     });
 
     mainWindow.loadFile('index.html');
-    mainWindow.webContents.openDevTools();
+    //mainWindow.webContents.openDevTools();
 
     const menu = Menu.buildFromTemplate([
         {
@@ -77,6 +71,22 @@ ipcMain.on('open-file-dialog', (event) => {
         console.error('Error selecting folder:', err);
     });
 });
+
+const { exec } = require('child_process')
+
+// 添加在 app.whenReady().then(createWindow) 之后
+
+ipcMain.handle('execute-command', (event, command) => {
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve(stdout || stderr)
+    })
+  })
+})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
